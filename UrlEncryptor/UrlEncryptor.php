@@ -49,6 +49,8 @@ class UrlEncryptor
      */
     private $iv;
 
+    private $old_iv;
+
     /**
      * UrlEncryptor constructor.
      *
@@ -82,6 +84,8 @@ class UrlEncryptor
             0,
             $ivLength
         );
+        //store old_iv for old links
+        $this->old_iv = substr(hash(self::HASH_ALGORITHM, $secretIv), 0, 16);
     }
 
     /**
@@ -113,6 +117,26 @@ class UrlEncryptor
             $this->secretKey,
             OPENSSL_RAW_DATA,
             $iv
+        );
+
+        if (!ctype_print($decrypted)) {
+            $decrypted = $this->decryptOld($encrypted);
+        }
+
+        return trim($decrypted);
+    }
+    /**
+     * @param string $encrypted
+     * @return string
+     */
+    public function decryptOld($encrypted)
+    {
+        $decrypted = openssl_decrypt(
+            $encrypted,
+            'aes-256-ctr',
+            $this->secretKey,
+            0,
+            $this->old_iv
         );
 
         return trim($decrypted);
